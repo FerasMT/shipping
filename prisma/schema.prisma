@@ -1,0 +1,87 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Shipment {
+  id            Int               @id @default(autoincrement())
+  destination   String
+  dateCreated   DateTime          @default(now())
+  isOpen        Boolean           @default(true)
+  totalWeight   Float             @default(0.0)
+  totalVolume   Float             @default(0.0)
+  driverName    String?
+  driverVehicle String?
+  note          String?
+  dateClosed    DateTime?
+
+  partialShipments PartialShipment[]
+}
+
+model PartialShipmentItem {
+  id                Int              @id @default(autoincrement())
+  weight            Float
+  origin            String
+  hscode            String
+  amount            Float
+  value             Float
+
+  // Relation field: each item belongs to a PartialShipment.
+  partialShipmentId Int
+  partialShipment   PartialShipment  @relation(fields: [partialShipmentId], references: [id])
+}
+
+model PackageDetail {
+  id                Int              @id @default(autoincrement())
+  length            Float
+  width             Float
+  height            Float
+  weight            Float
+
+  partialShipmentId Int
+  partialShipment   PartialShipment  @relation(fields: [partialShipmentId], references: [id])
+}
+
+model PartialShipment {
+  id                    Int                    @id @default(autoincrement())
+  receiverName          String?
+  receiverPhone         String?
+  receiverAddress       String?
+  // (The following fields will be replaced by package details on the front end)
+  // length              Float    @default(0.0)
+  // width               Float    @default(0.0)
+  // height              Float    @default(0.0)
+  // weight              Float    @default(0.0)
+  volume                Float                  @default(0.0)
+  cost                  Float                  @default(0.0)
+  amountPaid            Float                  @default(0.0)
+  paymentStatus         String?                // e.g. "paid", "unpaid", "partially_paid"
+  paymentResponsibility String?                // e.g. "customer" or "receiver"
+  paymentCompleted      Boolean                @default(false) // <<== New field
+
+  shipmentId            Int
+  shipment              Shipment               @relation(fields: [shipmentId], references: [id])
+  
+  customerId            Int
+  customer              Customer               @relation(fields: [customerId], references: [id])
+  
+  // New relation: one Partial Shipment has one or more Package Details.
+  packages              PackageDetail[]
+  items                 PartialShipmentItem[]
+
+}
+
+model Customer {
+  id      Int              @id @default(autoincrement())
+  name    String
+  phone   String?
+  address String?
+  balance Float            @default(0.0)
+
+  partialShipments PartialShipment[]
+}
+
